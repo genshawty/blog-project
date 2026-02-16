@@ -1,0 +1,165 @@
+syntax = "proto3";
+
+package blog;
+
+// Blog service
+service BlogService {
+    // Register user
+    rpc Register(RegisterRequest) returns (RegisterResponse);
+
+    // Login user
+    rpc Login(LoginRequest) returns (LoginResponse);
+
+    // Create post
+    rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
+    // Get post
+    rpc GetPost(GetPostRequest) returns (GetPostResponse);
+    // Update post
+    rpc UpdatePost(UpdatePostRequest) returns (UpdatePostResponse);
+    // Delete post
+    rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
+}
+
+// Registered user
+message User {
+    string user_id = 1;
+    string login = 2;
+}
+
+// Registration input
+message RegisterRequest {
+    string login = 1;
+    string password = 2;
+}
+
+// Registration outcome
+enum ResistrationStatus {
+    USER_ALREADY_EXIST = 0;
+    INTERNAL_ERROR = 1;
+    OK = 2;
+}
+
+// Registration result
+message RegisterResponse {
+    ResistrationStatus status = 1;
+    string login = 2;
+}
+
+// Login input
+message LoginRequest {
+    string login = 1;
+    string password = 2;
+}
+
+// Login outcome
+enum LoginStatus {
+    INVALID_CREDENTIALS = 0;
+    INTERNAL_ERROR = 1;
+    OK = 2;
+}
+
+// Authentication token
+message Auth {
+    string token = 1;
+}
+
+// Login result
+message LoginResponse {
+    LoginStatus status = 1;
+    Auth auth = 2;
+}
+
+// Post content
+message Content {
+    string text = 1;
+}
+
+// Blog post
+message Post {
+    string post_id = 1;
+    string user_id = 2;
+    Content content = 3;
+}
+
+// CRUD messages
+
+// Create post input
+message CreatePostRequest {
+    Auth auth = 1;
+    Content content = 2;
+}
+
+// Create post outcome
+enum CreatePostStatus {
+    CREATE_POST_OK = 0;
+    CREATE_POST_UNAUTHORIZED = 1;
+    CREATE_POST_INTERNAL_ERROR = 2;
+}
+
+// Create post result
+message CreatePostResponse {
+    CreatePostStatus status = 1;
+    Post post = 2;
+}
+
+// Get post input
+message GetPostRequest {
+    Auth auth = 1;
+    string post_id = 2;
+}
+
+// Get post outcome
+enum GetPostStatus {
+    GET_POST_OK = 0;
+    GET_POST_NOT_FOUND = 1;
+    GET_POST_UNAUTHORIZED = 2;
+    GET_POST_INTERNAL_ERROR = 3;
+}
+
+// Get post result
+message GetPostResponse {
+    GetPostStatus status = 1;
+    Post post = 2;
+}
+
+// Update post input
+message UpdatePostRequest {
+    Auth auth = 1;
+    string post_id = 2;
+    Content content = 3;
+}
+
+// Update post outcome
+enum UpdatePostStatus {
+    UPDATE_POST_OK = 0;
+    UPDATE_POST_NOT_FOUND = 1;
+    UPDATE_POST_UNAUTHORIZED = 2;
+    UPDATE_POST_FORBIDDEN = 3;
+    UPDATE_POST_INTERNAL_ERROR = 4;
+}
+
+// Update post result
+message UpdatePostResponse {
+    UpdatePostStatus status = 1;
+    Post post = 2;
+}
+
+// Delete post input
+message DeletePostRequest {
+    Auth auth = 1;
+    string post_id = 2;
+}
+
+// Delete post outcome
+enum DeletePostStatus {
+    DELETE_POST_OK = 0;
+    DELETE_POST_NOT_FOUND = 1;
+    DELETE_POST_UNAUTHORIZED = 2;
+    DELETE_POST_FORBIDDEN = 3;
+    DELETE_POST_INTERNAL_ERROR = 4;
+}
+
+// Delete post result
+message DeletePostResponse {
+    DeletePostStatus status = 1;
+}
