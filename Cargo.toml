@@ -1,0 +1,4 @@
+# [PROJECT_DIR]/Cargo.toml
+[workspace]
+members = ["blog-cli","blog-client","blog-server", "blog-wasm"]
+resolver = "3"
