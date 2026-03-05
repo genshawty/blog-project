@@ -34,15 +34,15 @@ message RegisterRequest {
 
 // Registration outcome
 enum ResistrationStatus {
-    USER_ALREADY_EXIST = 0;
-    INTERNAL_ERROR = 1;
-    OK = 2;
+    REGISTRATION_USER_ALREADY_EXIST = 0;
+    REGISTRATION_INTERNAL_ERROR = 1;
+    REGISTRATION_OK = 2;
 }
 
 // Registration result
 message RegisterResponse {
     ResistrationStatus status = 1;
-    string login = 2;
+    Auth auth = 2;
 }
 
 // Login input
@@ -53,9 +53,9 @@ message LoginRequest {
 
 // Login outcome
 enum LoginStatus {
-    INVALID_CREDENTIALS = 0;
-    INTERNAL_ERROR = 1;
-    OK = 2;
+    LOGIN_INVALID_CREDENTIALS = 0;
+    LOGIN_INTERNAL_ERROR = 1;
+    LOGIN_OK = 2;
 }
 
 // Authentication token
