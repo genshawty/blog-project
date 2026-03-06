@@ -10,7 +10,7 @@ argon2.workspace = true
 uuid = {workspace = true, features = ["v4"]}
 chrono.workspace = true
 serde = {workspace = true, features=["derive"]}
-jsonwebtoken = "10.3"
+jsonwebtoken = { version = "10.3", features = ["rust_crypto"] }
 rand_core = "0.10"
 tracing-subscriber = {version="0.3.22", features = ["env-filter", "json", "chrono", "time"]}
 tracing = "0.1.44"
@@ -30,7 +30,7 @@ futures-util = "=0.3.31"
 anyhow = "1.0.102"
 dotenv = "0.15.0"
 async-trait = "0.1.89"
-prost = "0.12"
+prost.workspace = true
 
 [build-dependencies]
 tonic-build.workspace = true

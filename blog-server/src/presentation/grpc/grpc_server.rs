@@ -52,7 +52,7 @@ impl<U: UserRepository + Send + Sync + 'static, P: PostRepository + Send + Sync 
         let req = request.into_inner();
         match self
             .auth_service
-            .register(req.login.clone(), req.login.clone(), req.password)
+            .register(req.login.clone(), req.email.clone(), req.password)
             .await
         {
             Ok((token, _)) => Ok(Response::new(RegisterResponse {
@@ -243,6 +243,35 @@ impl<U: UserRepository + Send + Sync + 'static, P: PostRepository + Send + Sync 
             })),
             Err(_) => Ok(Response::new(DeletePostResponse {
                 status: DeletePostStatus::DeletePostInternalError.into(),
+            })),
+        }
+    }
+
+    async fn list_posts(
+        &self,
+        request: Request<ListPostsRequest>,
+    ) -> Result<Response<ListPostsResponse>, Status> {
+        let req = request.into_inner();
+        let limit = if req.limit > 0 { req.limit } else { 10 };
+        let offset = if req.offset >= 0 { req.offset } else { 0 };
+
+        match self.blog_service.list_posts(limit, offset).await {
+            Ok((posts, total)) => Ok(Response::new(ListPostsResponse {
+                status: ListPostsStatus::ListPostsOk.into(),
+                posts: posts
+                    .into_iter()
+                    .map(|p| Post {
+                        post_id: p.id.to_string(),
+                        user_id: p.author_id.to_string(),
+                        content: Some(Content { text: p.content }),
+                    })
+                    .collect(),
+                total,
+            })),
+            Err(_) => Ok(Response::new(ListPostsResponse {
+                status: ListPostsStatus::ListPostsInternalError.into(),
+                posts: vec![],
+                total: 0,
             })),
         }
     }

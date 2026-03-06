@@ -219,18 +219,19 @@ where
             .map(|value| value.to_string());
 
         Box::pin(async move {
-            let auth_service = auth_service
-                .ok_or_else(|| actix_web::error::ErrorInternalServerError("AuthService missing"))?;
-
-            let header = auth_header.ok_or_else(|| {
-                actix_web::error::ErrorUnauthorized("missing authorization header")
-            })?;
-            let token = header.strip_prefix("Bearer ").ok_or_else(|| {
-                actix_web::error::ErrorUnauthorized("invalid authorization header")
-            })?;
-
-            let user = extract_user_from_token(token, &keys, auth_service.get_ref()).await?;
-            req.extensions_mut().insert(user);
+            // If auth header is present, validate and inject user.
+            // If absent, pass through — handler's AuthenticatedUser extractor will reject if needed.
+            if let Some(header) = auth_header {
+                if let Some(token) = header.strip_prefix("Bearer ") {
+                    if let Some(auth_service) = auth_service {
+                        if let Ok(user) =
+                            extract_user_from_token(token, &keys, auth_service.get_ref()).await
+                        {
+                            req.extensions_mut().insert(user);
+                        }
+                    }
+                }
+            }
 
             let fut = {
                 let svc = service.borrow_mut();

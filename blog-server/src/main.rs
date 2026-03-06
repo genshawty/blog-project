@@ -44,7 +44,6 @@ async fn main() -> std::io::Result<()> {
         JwtKeys::new(config.jwt_secret.clone()),
     );
 
-    // Start gRPC server in a background task
     let grpc_addr: SocketAddr = format!("{}:{}", config.host, config.grpc_port)
         .parse()
         .expect("invalid gRPC address");
@@ -53,13 +52,17 @@ async fn main() -> std::io::Result<()> {
         blog_service.clone(),
         JwtKeys::new(config.jwt_secret.clone()),
     );
+
     tokio::spawn(async move {
         info!("gRPC server listening on {}", grpc_addr);
-        TonicServer::builder()
+        if let Err(e) = TonicServer::builder()
             .add_service(BlogServiceServer::new(grpc_service))
             .serve(grpc_addr)
             .await
-            .expect("gRPC server failed");
+        {
+            tracing::error!("gRPC server failed: {:?}", e);
+            std::process::exit(1);
+        }
     });
 
     let config_data = config.clone();
@@ -82,13 +85,9 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(auth_service.clone()))
             .service(
                 web::scope("/api")
+                    .wrap(JwtAuthMiddleware::new(auth_service.keys().clone()))
                     .service(handlers::handlers::auth_scope())
-                    .service(handlers::handlers::posts_public_scope())
-                    .service(
-                        web::scope("")
-                            .wrap(JwtAuthMiddleware::new(auth_service.keys().clone()))
-                            .service(handlers::handlers::posts_protected_scope()),
-                    ),
+                    .service(handlers::handlers::posts_scope()),
             )
     })
     .bind((config.host.as_str(), config.port))?
@@ -98,11 +97,8 @@ async fn main() -> std::io::Result<()> {
 
 fn build_cors(config: &AppConfig) -> Cors {
     let mut cors = Cors::default()
-        .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
-        .allowed_headers(vec![
-            actix_web::http::header::CONTENT_TYPE,
-            actix_web::http::header::AUTHORIZATION,
-        ])
+        .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+        .allow_any_header()
         .supports_credentials()
         .max_age(3600);
 

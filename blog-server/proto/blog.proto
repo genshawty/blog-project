@@ -18,6 +18,8 @@ service BlogService {
     rpc UpdatePost(UpdatePostRequest) returns (UpdatePostResponse);
     // Delete post
     rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
+    // List posts
+    rpc ListPosts(ListPostsRequest) returns (ListPostsResponse);
 }
 
 // Registered user
@@ -29,7 +31,8 @@ message User {
 // Registration input
 message RegisterRequest {
     string login = 1;
-    string password = 2;
+    string email = 2;
+    string password = 3;
 }
 
 // Registration outcome
@@ -162,4 +165,23 @@ enum DeletePostStatus {
 // Delete post result
 message DeletePostResponse {
     DeletePostStatus status = 1;
+}
+
+// List posts input
+message ListPostsRequest {
+    int64 limit = 1;
+    int64 offset = 2;
+}
+
+// List posts outcome
+enum ListPostsStatus {
+    LIST_POSTS_OK = 0;
+    LIST_POSTS_INTERNAL_ERROR = 1;
+}
+
+// List posts result
+message ListPostsResponse {
+    ListPostsStatus status = 1;
+    repeated Post posts = 2;
+    int64 total = 3;
 }

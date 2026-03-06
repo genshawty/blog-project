@@ -34,12 +34,10 @@ pub fn auth_scope() -> Scope {
     web::scope("/auth").service(register).service(login)
 }
 
-pub fn posts_public_scope() -> Scope {
-    web::scope("/posts").service(list_posts).service(get_post)
-}
-
-pub fn posts_protected_scope() -> Scope {
+pub fn posts_scope() -> Scope {
     web::scope("/posts")
+        .service(list_posts)
+        .service(get_post)
         .service(create_post)
         .service(update_post)
         .service(delete_post)

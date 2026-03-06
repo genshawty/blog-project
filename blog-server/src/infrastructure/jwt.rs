@@ -21,7 +21,7 @@ impl JwtKeys {
             user_id: user_id.to_string(),
             username: username,
             exp: chrono::Utc::now()
-                .checked_add_signed(chrono::Duration::hours(1))
+                .checked_add_signed(chrono::Duration::hours(24))
                 .unwrap()
                 .timestamp() as usize,
             iat: chrono::Utc::now().timestamp() as usize,
