@@ -8,6 +8,7 @@ pub struct AppConfig {
     pub jwt_secret: String,
     #[serde(default)]
     pub cors_origins: Vec<String>,
+    pub database_url: Option<String>,
 }
 
 impl AppConfig {
@@ -32,12 +33,15 @@ impl AppConfig {
             .filter(|s| !s.is_empty())
             .collect();
 
+        let database_url = std::env::var("DATABASE_URL").ok();
+
         Ok(Self {
             host,
             port,
             grpc_port,
             jwt_secret,
             cors_origins,
+            database_url,
         })
     }
 }

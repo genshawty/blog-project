@@ -20,9 +20,10 @@ use tracing::info;
 use application::auth_service::AuthService;
 use application::blog_service::BlogService;
 use blog::blog_service_server::BlogServiceServer;
-use data::post_repository::InMemoryPostRepository;
-use data::user_repository::InMemoryUserRepository;
+use data::post_repository::{InMemoryPostRepository, PostRepository, PostgresPostRepository};
+use data::user_repository::{InMemoryUserRepository, PostgresUserRepository, UserRepository};
 use infrastructure::config::AppConfig;
+use infrastructure::database::{create_pool, run_migrations};
 use infrastructure::jwt::JwtKeys;
 use infrastructure::logging::init_logging;
 use presentation::grpc::grpc_server::GrpcBlogService;
@@ -35,9 +36,46 @@ async fn main() -> std::io::Result<()> {
 
     let config = AppConfig::from_env().expect("invalid configuration");
 
-    let user_repo: Arc<InMemoryUserRepository> = Arc::new(InMemoryUserRepository::default());
-    let post_repo: Arc<InMemoryPostRepository> = Arc::new(InMemoryPostRepository::default());
+    let storage = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "memory".into());
 
+    match storage.as_str() {
+        "postgres" => {
+            let db_url = config
+                .database_url
+                .as_deref()
+                .expect("DATABASE_URL must be set for postgres mode");
+            let pool = create_pool(db_url)
+                .await
+                .expect("failed to connect to database");
+            run_migrations(&pool)
+                .await
+                .expect("failed to run migrations");
+            info!("Connected to PostgreSQL, migrations applied");
+
+            let user_repo = Arc::new(PostgresUserRepository::new(pool.clone()));
+            let post_repo = Arc::new(PostgresPostRepository::new(pool));
+            run_server(config, user_repo, post_repo).await
+        }
+        _ => {
+            info!("Using in-memory storage");
+            let user_repo = Arc::new(InMemoryUserRepository::default());
+            let post_repo = Arc::new(InMemoryPostRepository::default());
+            run_server(config, user_repo, post_repo).await
+        }
+    }
+}
+
+async fn run_server<U, P>(
+    config: AppConfig,
+    user_repo: Arc<U>,
+    post_repo: Arc<P>,
+) -> std::io::Result<()>
+where
+    U: UserRepository + Clone + 'static,
+    P: PostRepository + Clone + 'static,
+{
     let blog_service = BlogService::new(Arc::clone(&post_repo));
     let auth_service = AuthService::new(
         Arc::clone(&user_repo),

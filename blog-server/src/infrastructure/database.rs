@@ -1,14 +1,10 @@
-use sqlx::{
-    PgPool, migrate,
-    pool::Pool,
-    postgres::{PgPoolOptions, Postgres},
-};
+use sqlx::{PgPool, migrate, postgres::PgPoolOptions};
 
-async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
+pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
     migrate!("./migrations").run(pool).await?;
     Ok(())
 }
 
-async fn create_pool(url: &str) -> Result<Pool<Postgres>, sqlx::Error> {
+pub async fn create_pool(url: &str) -> Result<PgPool, sqlx::Error> {
     PgPoolOptions::new().max_connections(10).connect(url).await
 }

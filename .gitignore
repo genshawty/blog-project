@@ -1,2 +1,10 @@
 target/
 .env
+.*
+specs.md
+
+# used to find unmentioned bugs and see if i missed to do something, which marked as TODO
+# since it is pet project, there is no reason for me to vibe code it, but very useful to improve my skills 
+# by reviewing my code with claude
+.claude/
+claude.md
