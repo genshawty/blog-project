@@ -4,6 +4,7 @@ use serde::Deserialize;
 pub struct AppConfig {
     pub host: String,
     pub port: u16,
+    pub grpc_port: u16,
     pub jwt_secret: String,
     #[serde(default)]
     pub cors_origins: Vec<String>,
@@ -18,6 +19,10 @@ impl AppConfig {
             .unwrap_or_else(|_| "8080".into())
             .parse()
             .map_err(|e| anyhow::anyhow!("invalid PORT: {}", e))?;
+        let grpc_port = std::env::var("GRPC_PORT")
+            .unwrap_or_else(|_| "50051".into())
+            .parse()
+            .map_err(|e| anyhow::anyhow!("invalid GRPC_PORT: {}", e))?;
         let jwt_secret =
             std::env::var("JWT_SECRET").map_err(|_| anyhow::anyhow!("JWT_SECRET must be set"))?;
         let cors_origins = std::env::var("CORS_ORIGINS")
@@ -30,6 +35,7 @@ impl AppConfig {
         Ok(Self {
             host,
             port,
+            grpc_port,
             jwt_secret,
             cors_origins,
         })

@@ -4,19 +4,28 @@ pub mod domain;
 pub mod infrastructure;
 pub mod presentation;
 
+pub mod blog {
+    tonic::include_proto!("blog");
+}
+
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 use actix_cors::Cors;
 use actix_web::middleware::{DefaultHeaders, Logger};
 use actix_web::{App, HttpServer, web};
+use tonic::transport::Server as TonicServer;
+use tracing::info;
 
 use application::auth_service::AuthService;
 use application::blog_service::BlogService;
+use blog::blog_service_server::BlogServiceServer;
 use data::post_repository::InMemoryPostRepository;
 use data::user_repository::InMemoryUserRepository;
 use infrastructure::config::AppConfig;
 use infrastructure::jwt::JwtKeys;
 use infrastructure::logging::init_logging;
+use presentation::grpc::grpc_server::GrpcBlogService;
 use presentation::handlers;
 use presentation::middleware::{JwtAuthMiddleware, RequestIdMiddleware, TimingMiddleware};
 
@@ -34,6 +43,24 @@ async fn main() -> std::io::Result<()> {
         Arc::clone(&user_repo),
         JwtKeys::new(config.jwt_secret.clone()),
     );
+
+    // Start gRPC server in a background task
+    let grpc_addr: SocketAddr = format!("{}:{}", config.host, config.grpc_port)
+        .parse()
+        .expect("invalid gRPC address");
+    let grpc_service = GrpcBlogService::new(
+        auth_service.clone(),
+        blog_service.clone(),
+        JwtKeys::new(config.jwt_secret.clone()),
+    );
+    tokio::spawn(async move {
+        info!("gRPC server listening on {}", grpc_addr);
+        TonicServer::builder()
+            .add_service(BlogServiceServer::new(grpc_service))
+            .serve(grpc_addr)
+            .await
+            .expect("gRPC server failed");
+    });
 
     let config_data = config.clone();
 
