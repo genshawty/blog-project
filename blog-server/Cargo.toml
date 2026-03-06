@@ -10,8 +10,8 @@ argon2.workspace = true
 uuid = {workspace = true, features = ["v4"]}
 chrono.workspace = true
 serde = {workspace = true, features=["derive"]}
-jsonwebtoken = "10.3.0"
-rand_core = "0.10.0"
+jsonwebtoken = "10.3"
+rand_core = "0.10"
 tracing-subscriber = {version="0.3.22", features = ["env-filter", "json", "chrono", "time"]}
 tracing = "0.1.44"
 sqlx = { version = "0.7", features = [
@@ -22,7 +22,11 @@ sqlx = { version = "0.7", features = [
   "migrate",
 ] }
 actix-web.workspace = true
-tokio = "1.50.0"
+serde_json.workspace = true
+tokio = "1.50"
+actix-cors = "0.6"
+actix-service = "2"
+futures-util = "=0.3.31"
 
 [build-dependencies]
 tonic-build.workspace = true

@@ -55,6 +55,32 @@ impl PostRepository {
         Ok(())
     }
 
+    pub async fn find_by_id(&self, post_id: Uuid) -> Result<Post, DomainError> {
+        let posts = self.posts.read().await;
+        for author_posts in posts.values() {
+            if let Some(post) = author_posts.get(&post_id) {
+                return Ok(post.clone());
+            }
+        }
+        Err(DomainError::PostNotFound(post_id))
+    }
+
+    pub async fn list_all(&self, limit: i64, offset: i64) -> Result<(Vec<Post>, i64), DomainError> {
+        let posts = self.posts.read().await;
+        let mut all_posts: Vec<Post> = posts
+            .values()
+            .flat_map(|author_posts| author_posts.values().cloned())
+            .collect();
+        all_posts.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        let total = all_posts.len() as i64;
+        let result = all_posts
+            .into_iter()
+            .skip(offset as usize)
+            .take(limit as usize)
+            .collect();
+        Ok((result, total))
+    }
+
     pub async fn list_for_author(&self, author_id: Uuid) -> Result<Vec<Post>, DomainError> {
         let posts = self.posts.read().await;
         Ok(posts

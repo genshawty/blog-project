@@ -1,2 +1,4 @@
 pub mod auth;
-pub mod http_handlers;
+pub mod dto;
+pub mod handlers;
+pub mod middleware;
