@@ -6,6 +6,8 @@ use uuid::Uuid;
 
 use crate::application::auth_service::AuthService;
 use crate::application::blog_service::BlogService;
+use crate::data::post_repository::InMemoryPostRepository;
+use crate::data::user_repository::InMemoryUserRepository;
 use crate::domain::{BlogError, DomainError};
 use crate::presentation::auth::AuthenticatedUser;
 use crate::presentation::dto::{
@@ -33,9 +35,7 @@ pub fn auth_scope() -> Scope {
 }
 
 pub fn posts_public_scope() -> Scope {
-    web::scope("/posts")
-        .service(list_posts)
-        .service(get_post)
+    web::scope("/posts").service(list_posts).service(get_post)
 }
 
 pub fn posts_protected_scope() -> Scope {
@@ -64,7 +64,7 @@ fn map_domain_err(e: DomainError) -> BlogError {
 #[post("/register")]
 async fn register(
     req: HttpRequest,
-    auth: web::Data<AuthService>,
+    auth: web::Data<AuthService<InMemoryUserRepository>>,
     payload: web::Json<RegisterRequest>,
 ) -> Result<HttpResponse, BlogError> {
     let (token, user) = auth
@@ -88,7 +88,7 @@ async fn register(
 #[post("/login")]
 async fn login(
     req: HttpRequest,
-    auth: web::Data<AuthService>,
+    auth: web::Data<AuthService<InMemoryUserRepository>>,
     payload: web::Json<LoginRequest>,
 ) -> Result<HttpResponse, BlogError> {
     let (token, user) = auth.login(&payload.username, &payload.password).await?;
@@ -107,7 +107,7 @@ async fn login(
 async fn create_post(
     req: HttpRequest,
     user: AuthenticatedUser,
-    blog: web::Data<BlogService>,
+    blog: web::Data<BlogService<InMemoryPostRepository>>,
     payload: web::Json<CreatePostRequest>,
 ) -> Result<HttpResponse, BlogError> {
     let post = blog
@@ -122,7 +122,7 @@ async fn create_post(
 #[get("/{post_id}")]
 async fn get_post(
     req: HttpRequest,
-    blog: web::Data<BlogService>,
+    blog: web::Data<BlogService<InMemoryPostRepository>>,
     path: web::Path<Uuid>,
 ) -> Result<HttpResponse, BlogError> {
     let post_id = path.into_inner();
@@ -136,7 +136,7 @@ async fn get_post(
 async fn update_post(
     req: HttpRequest,
     user: AuthenticatedUser,
-    blog: web::Data<BlogService>,
+    blog: web::Data<BlogService<InMemoryPostRepository>>,
     path: web::Path<Uuid>,
     payload: web::Json<UpdatePostRequest>,
 ) -> Result<HttpResponse, BlogError> {
@@ -159,7 +159,7 @@ async fn update_post(
 async fn delete_post(
     req: HttpRequest,
     user: AuthenticatedUser,
-    blog: web::Data<BlogService>,
+    blog: web::Data<BlogService<InMemoryPostRepository>>,
     path: web::Path<Uuid>,
 ) -> Result<HttpResponse, BlogError> {
     let post_id = path.into_inner();
@@ -174,7 +174,7 @@ async fn delete_post(
 #[get("")]
 async fn list_posts(
     req: HttpRequest,
-    blog: web::Data<BlogService>,
+    blog: web::Data<BlogService<InMemoryPostRepository>>,
     query: web::Query<PaginationParams>,
 ) -> Result<HttpResponse, BlogError> {
     let limit = query.limit.unwrap_or(10);

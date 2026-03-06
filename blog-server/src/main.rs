@@ -12,14 +12,13 @@ use actix_web::{App, HttpServer, web};
 
 use application::auth_service::AuthService;
 use application::blog_service::BlogService;
-use data::{post_repository::PostRepository, user_repository::UserRepository};
+use data::post_repository::InMemoryPostRepository;
+use data::user_repository::InMemoryUserRepository;
 use infrastructure::config::AppConfig;
 use infrastructure::jwt::JwtKeys;
 use infrastructure::logging::init_logging;
 use presentation::handlers;
 use presentation::middleware::{JwtAuthMiddleware, RequestIdMiddleware, TimingMiddleware};
-
-use crate::application::blog_service;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -27,8 +26,8 @@ async fn main() -> std::io::Result<()> {
 
     let config = AppConfig::from_env().expect("invalid configuration");
 
-    let user_repo = Arc::new(UserRepository::default());
-    let post_repo = Arc::new(PostRepository::default());
+    let user_repo: Arc<InMemoryUserRepository> = Arc::new(InMemoryUserRepository::default());
+    let post_repo: Arc<InMemoryPostRepository> = Arc::new(InMemoryPostRepository::default());
 
     let blog_service = BlogService::new(Arc::clone(&post_repo));
     let auth_service = AuthService::new(
@@ -80,8 +79,12 @@ fn build_cors(config: &AppConfig) -> Cors {
         .supports_credentials()
         .max_age(3600);
 
-    for origin in &config.cors_origins {
-        cors = cors.allowed_origin(origin);
+    if config.cors_origins.iter().any(|o| o == "*") {
+        cors = cors.allow_any_origin();
+    } else {
+        for origin in &config.cors_origins {
+            cors = cors.allowed_origin(origin);
+        }
     }
 
     cors

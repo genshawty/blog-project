@@ -13,7 +13,7 @@ use tracing::info;
 use uuid::Uuid;
 
 use crate::application::auth_service::AuthService;
-use crate::data::user_repository::UserRepository;
+use crate::data::user_repository::InMemoryUserRepository;
 use crate::infrastructure::jwt::JwtKeys;
 use crate::presentation::auth::extract_user_from_token;
 
@@ -208,7 +208,9 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let keys = self.keys.clone();
         let service = Rc::clone(&self.service);
-        let auth_service = req.app_data::<web::Data<AuthService>>().cloned();
+        let auth_service = req
+            .app_data::<web::Data<AuthService<InMemoryUserRepository>>>()
+            .cloned();
 
         let auth_header = req
             .headers()
@@ -227,7 +229,7 @@ where
                 actix_web::error::ErrorUnauthorized("invalid authorization header")
             })?;
 
-            let user = extract_user_from_token(token, auth_service.get_ref()).await?;
+            let user = extract_user_from_token(token, &keys, auth_service.get_ref()).await?;
             req.extensions_mut().insert(user);
 
             let fut = {

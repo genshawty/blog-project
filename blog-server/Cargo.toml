@@ -29,6 +29,7 @@ actix-service = "2"
 futures-util = "=0.3.31"
 anyhow = "1.0.102"
 dotenv = "0.15.0"
+async-trait = "0.1.89"
 
 [build-dependencies]
 tonic-build.workspace = true

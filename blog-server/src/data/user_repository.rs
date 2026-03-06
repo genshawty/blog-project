@@ -1,20 +1,30 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::domain::{DomainError, user::User};
 
+#[async_trait]
+pub trait UserRepository: Send + Sync {
+    async fn create(&self, user: User) -> Result<User, DomainError>;
+    async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError>;
+    async fn find_by_username(&self, username: &str) -> Result<Option<User>, DomainError>;
+}
+
 #[derive(Default, Clone)]
-pub struct UserRepository {
+pub struct InMemoryUserRepository {
     pub users: Arc<RwLock<HashMap<Uuid, User>>>,
     pub emails: Arc<RwLock<HashMap<String, Uuid>>>,
     pub usernames: Arc<RwLock<HashMap<String, Uuid>>>,
 }
 
-impl UserRepository {
-    pub async fn create(&self, user: User) -> Result<User, DomainError> {
+#[async_trait]
+impl UserRepository for InMemoryUserRepository {
+    async fn create(&self, user: User) -> Result<User, DomainError> {
         let mut users = self.users.write().await;
         let mut emails = self.emails.write().await;
         let mut usernames = self.usernames.write().await;
@@ -29,7 +39,7 @@ impl UserRepository {
         Ok(user)
     }
 
-    pub async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError> {
+    async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError> {
         let emails = self.emails.read().await;
         let users = self.users.read().await;
 
@@ -40,7 +50,7 @@ impl UserRepository {
         }
     }
 
-    pub async fn find_by_username(&self, username: &str) -> Result<Option<User>, DomainError> {
+    async fn find_by_username(&self, username: &str) -> Result<Option<User>, DomainError> {
         let usernames = self.usernames.read().await;
         let users = self.users.read().await;
 
@@ -51,7 +61,7 @@ impl UserRepository {
         }
     }
 
-    pub async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError> {
         let users = self.users.read().await;
         Ok(users.get(&id).cloned())
     }

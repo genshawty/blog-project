@@ -4,6 +4,8 @@ use std::future::{Ready, ready};
 use uuid::Uuid;
 
 use crate::application::auth_service::AuthService;
+use crate::data::user_repository::InMemoryUserRepository;
+use crate::infrastructure::jwt::JwtKeys;
 
 #[derive(Debug, Clone)]
 pub struct AuthenticatedUser {
@@ -26,10 +28,10 @@ impl FromRequest for AuthenticatedUser {
 
 pub async fn extract_user_from_token(
     token: &str,
-    auth_service: &AuthService,
+    keys: &JwtKeys,
+    auth_service: &AuthService<InMemoryUserRepository>,
 ) -> Result<AuthenticatedUser, Error> {
-    let claims = auth_service
-        .keys()
+    let claims = keys
         .verify_token(token)
         .map_err(|_| ErrorUnauthorized("invalid token"))?;
     let user_id =

@@ -8,13 +8,16 @@ use crate::domain::user::{User, verify_password};
 use crate::infrastructure::jwt::JwtKeys;
 
 #[derive(Clone)]
-pub struct AuthService {
-    repo: Arc<UserRepository>,
+pub struct AuthService<R: UserRepository + 'static> {
+    repo: Arc<R>,
     keys: JwtKeys,
 }
 
-impl AuthService {
-    pub fn new(repo: Arc<UserRepository>, keys: JwtKeys) -> Self {
+impl<R> AuthService<R>
+where
+    R: UserRepository + 'static,
+{
+    pub fn new(repo: Arc<R>, keys: JwtKeys) -> Self {
         Self { repo, keys }
     }
 
