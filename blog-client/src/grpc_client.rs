@@ -69,13 +69,14 @@ impl BlogApi for BlogGrpcClient {
     async fn register(
         &mut self,
         username: &str,
-        _email: &str,
+        email: &str,
         password: &str,
     ) -> Result<AuthResponse, BlogClientError> {
         let resp = self
             .client
             .register(blog::RegisterRequest {
                 login: username.to_string(),
+                email: email.to_string(),
                 password: password.to_string(),
             })
             .await?
@@ -91,7 +92,7 @@ impl BlogApi for BlogGrpcClient {
                     token: auth.token,
                     user: AuthUserInfo {
                         username: username.to_string(),
-                        email: _email.to_string(),
+                        email: email.to_string(),
                     },
                 })
             }

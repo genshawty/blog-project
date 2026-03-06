@@ -56,7 +56,7 @@ pub trait BlogApi {
     ) -> Result<PostListResponse, BlogClientError>;
 }
 
-#[derive(strum_macros::EnumString)]
+#[derive(Clone, Copy, strum_macros::EnumString)]
 pub enum Transport {
     Http,
     Grpc,
@@ -64,16 +64,25 @@ pub enum Transport {
 
 pub struct BlogClient {
     pub transport: Transport,
+    addr: String,
     client: Box<dyn BlogApi + Send + Sync>,
 }
 
 impl BlogClient {
-    pub fn new(transport: Transport, addr: &str) -> Self {
+    pub async fn new(transport: Transport, addr: &str) -> Self {
         let client: Box<dyn BlogApi + Send + Sync> = match &transport {
             Transport::Http => Box::new(BlogHttpClient::new(addr)),
-            Transport::Grpc => Box::new(BlogGrpcClient::new(addr)),
+            Transport::Grpc => Box::new(BlogGrpcClient::connect(addr).await.expect("Failed to connect to gRPC server")),
         };
-        Self { transport, client }
+        Self { transport, addr: addr.to_string(), client }
+    }
+
+    pub fn transport_kind(&self) -> Transport {
+        self.transport
+    }
+
+    pub fn transport_addr(&self) -> &str {
+        &self.addr
     }
 
     pub fn set_token(&mut self, token: String) {
