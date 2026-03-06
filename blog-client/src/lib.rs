@@ -5,46 +5,20 @@ pub mod blog {
 pub mod error;
 pub mod grpc_client;
 pub mod http_client;
+pub mod types;
 
 use grpc_client::BlogGrpcClient;
 use http_client::BlogHttpClient;
 
 use async_trait::async_trait;
 use error::BlogClientError;
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AuthUserInfo {
-    pub username: String,
-    pub email: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AuthResponse {
-    pub token: String,
-    pub user: AuthUserInfo,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PostResponse {
-    pub id: String,
-    pub author_id: String,
-    pub title: String,
-    pub content: String,
-    pub created_at: String,
-    pub updated_at: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PostListResponse {
-    pub posts: Vec<PostResponse>,
-    pub total: i64,
-    pub limit: i64,
-    pub offset: i64,
-}
+pub use types::*;
 
 #[async_trait]
 pub trait BlogApi {
+    fn set_token(&mut self, token: String);
+    fn get_token(&self) -> Option<&str>;
+
     async fn register(
         &mut self,
         username: &str,
@@ -88,37 +62,26 @@ pub enum Transport {
     Grpc,
 }
 
-pub struct BlogClient<R: BlogApi + 'static> {
+pub struct BlogClient {
     pub transport: Transport,
-    pub client: R,
-    pub token: Option<String>,
+    client: Box<dyn BlogApi + Send + Sync>,
 }
 
-impl<R> BlogClient<R>
-where
-    R: BlogApi + 'static,
-{
+impl BlogClient {
     pub fn new(transport: Transport, addr: &str) -> Self {
-        match transport {
-            Transport::Http => Self {
-                transport,
-                client: BlogHttpClient::new(addr),
-                token: None,
-            },
-            Transport::Grpc => Self {
-                transport,
-                client: BlogGrpcClient::new(addr),
-                token: None,
-            },
-        }
+        let client: Box<dyn BlogApi + Send + Sync> = match &transport {
+            Transport::Http => Box::new(BlogHttpClient::new(addr)),
+            Transport::Grpc => Box::new(BlogGrpcClient::new(addr)),
+        };
+        Self { transport, client }
     }
 
-    pub fn set_token(&mut self, token: &str) {
-        self.token = Some(token.to_owned())
+    pub fn set_token(&mut self, token: String) {
+        self.client.set_token(token);
     }
 
-    pub fn get_token(&self) -> Option<String> {
-        self.token.clone()
+    pub fn get_token(&self) -> Option<&str> {
+        self.client.get_token()
     }
 
     pub async fn register(
