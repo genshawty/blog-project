@@ -12,6 +12,9 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 anyhow.workspace = true
+async-trait.workspace = true
+strum = "0.28.0"
+strum_macros = "0.28.0"
 
 [build-dependencies]
 tonic-build.workspace = true
