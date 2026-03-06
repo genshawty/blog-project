@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -6,11 +7,11 @@ use crate::domain::{DomainError, Post};
 
 #[derive(Clone)]
 pub struct BlogService {
-    repo: PostRepository,
+    repo: Arc<PostRepository>,
 }
 
 impl BlogService {
-    pub fn new(repo: PostRepository) -> Self {
+    pub fn new(repo: Arc<PostRepository>) -> Self {
         Self { repo }
     }
 
@@ -59,7 +60,11 @@ impl BlogService {
     }
 
     #[instrument(skip(self))]
-    pub async fn list_posts(&self, limit: i64, offset: i64) -> Result<(Vec<Post>, i64), DomainError> {
+    pub async fn list_posts(
+        &self,
+        limit: i64,
+        offset: i64,
+    ) -> Result<(Vec<Post>, i64), DomainError> {
         self.repo.list_all(limit, offset).await
     }
 }

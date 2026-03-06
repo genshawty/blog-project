@@ -12,6 +12,7 @@ use futures_util::future::LocalBoxFuture;
 use tracing::info;
 use uuid::Uuid;
 
+use crate::application::auth_service::AuthService;
 use crate::data::user_repository::UserRepository;
 use crate::infrastructure::jwt::JwtKeys;
 use crate::presentation::auth::extract_user_from_token;
@@ -207,7 +208,7 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let keys = self.keys.clone();
         let service = Rc::clone(&self.service);
-        let user_repo = req.app_data::<web::Data<UserRepository>>().cloned();
+        let auth_service = req.app_data::<web::Data<AuthService>>().cloned();
 
         let auth_header = req
             .headers()
@@ -216,8 +217,8 @@ where
             .map(|value| value.to_string());
 
         Box::pin(async move {
-            let user_repo = user_repo
-                .ok_or_else(|| actix_web::error::ErrorInternalServerError("UserRepository missing"))?;
+            let auth_service = auth_service
+                .ok_or_else(|| actix_web::error::ErrorInternalServerError("AuthService missing"))?;
 
             let header = auth_header.ok_or_else(|| {
                 actix_web::error::ErrorUnauthorized("missing authorization header")
@@ -226,7 +227,7 @@ where
                 actix_web::error::ErrorUnauthorized("invalid authorization header")
             })?;
 
-            let user = extract_user_from_token(token, &keys, user_repo.get_ref()).await?;
+            let user = extract_user_from_token(token, auth_service.get_ref()).await?;
             req.extensions_mut().insert(user);
 
             let fut = {

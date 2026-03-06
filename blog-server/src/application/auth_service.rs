@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -8,12 +9,12 @@ use crate::infrastructure::jwt::JwtKeys;
 
 #[derive(Clone)]
 pub struct AuthService {
-    repo: UserRepository,
+    repo: Arc<UserRepository>,
     keys: JwtKeys,
 }
 
 impl AuthService {
-    pub fn new(repo: UserRepository, keys: JwtKeys) -> Self {
+    pub fn new(repo: Arc<UserRepository>, keys: JwtKeys) -> Self {
         Self { repo, keys }
     }
 
@@ -53,8 +54,8 @@ impl AuthService {
             .map_err(|e| BlogError::Internal(e.to_string()))?
             .ok_or(BlogError::Unauthorized)?;
 
-        let is_valid = verify_password(password, &user.password_hash)
-            .map_err(|_| BlogError::Unauthorized)?;
+        let is_valid =
+            verify_password(password, &user.password_hash).map_err(|_| BlogError::Unauthorized)?;
         if !is_valid {
             return Err(BlogError::Unauthorized);
         }

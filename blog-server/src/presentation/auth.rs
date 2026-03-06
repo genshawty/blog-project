@@ -3,8 +3,7 @@ use actix_web::{Error, FromRequest, HttpMessage, HttpRequest, error::ErrorUnauth
 use std::future::{Ready, ready};
 use uuid::Uuid;
 
-use crate::data::user_repository::UserRepository;
-use crate::infrastructure::jwt::JwtKeys;
+use crate::application::auth_service::AuthService;
 
 #[derive(Debug, Clone)]
 pub struct AuthenticatedUser {
@@ -27,19 +26,18 @@ impl FromRequest for AuthenticatedUser {
 
 pub async fn extract_user_from_token(
     token: &str,
-    keys: &JwtKeys,
-    user_repo: &UserRepository,
+    auth_service: &AuthService,
 ) -> Result<AuthenticatedUser, Error> {
-    let claims = keys
+    let claims = auth_service
+        .keys()
         .verify_token(token)
         .map_err(|_| ErrorUnauthorized("invalid token"))?;
     let user_id =
         Uuid::parse_str(&claims.user_id).map_err(|_| ErrorUnauthorized("invalid token"))?;
-    let user = user_repo
-        .find_by_id(user_id)
+    let user = auth_service
+        .get_user(user_id)
         .await
-        .map_err(|_| ErrorUnauthorized("user lookup failed"))?
-        .ok_or_else(|| ErrorUnauthorized("user not found"))?;
+        .map_err(|_| ErrorUnauthorized("user not found"))?;
 
     Ok(AuthenticatedUser {
         id: user.id,

@@ -1,6 +1,5 @@
 use actix_web::{
-    HttpMessage, HttpRequest, HttpResponse, ResponseError, Scope,
-    delete, get, post, put, web,
+    HttpMessage, HttpRequest, HttpResponse, ResponseError, Scope, delete, get, post, put, web,
 };
 use tracing::info;
 use uuid::Uuid;
@@ -30,16 +29,18 @@ impl ResponseError for BlogError {
 }
 
 pub fn auth_scope() -> Scope {
-    web::scope("/api/auth")
-        .service(register)
-        .service(login)
+    web::scope("/auth").service(register).service(login)
 }
 
-pub fn posts_scope() -> Scope {
-    web::scope("/api/posts")
+pub fn posts_public_scope() -> Scope {
+    web::scope("/posts")
         .service(list_posts)
-        .service(create_post)
         .service(get_post)
+}
+
+pub fn posts_protected_scope() -> Scope {
+    web::scope("/posts")
+        .service(create_post)
         .service(update_post)
         .service(delete_post)
 }
@@ -125,10 +126,7 @@ async fn get_post(
     path: web::Path<Uuid>,
 ) -> Result<HttpResponse, BlogError> {
     let post_id = path.into_inner();
-    let post = blog
-        .get_post(post_id)
-        .await
-        .map_err(map_domain_err)?;
+    let post = blog.get_post(post_id).await.map_err(map_domain_err)?;
 
     info!(request_id = %request_id(&req), post_id = %post_id, "post fetched");
     Ok(HttpResponse::Ok().json(PostResponse::from(post)))
@@ -144,7 +142,12 @@ async fn update_post(
 ) -> Result<HttpResponse, BlogError> {
     let post_id = path.into_inner();
     let post = blog
-        .update_post(user.id, post_id, payload.title.clone(), payload.content.clone())
+        .update_post(
+            user.id,
+            post_id,
+            payload.title.clone(),
+            payload.content.clone(),
+        )
         .await
         .map_err(map_domain_err)?;
 
