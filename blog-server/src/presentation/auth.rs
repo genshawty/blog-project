@@ -4,7 +4,6 @@ use std::future::{Ready, ready};
 use uuid::Uuid;
 
 use crate::application::auth_service::AuthService;
-use crate::data::user_repository::InMemoryUserRepository;
 use crate::infrastructure::jwt::JwtKeys;
 
 #[derive(Debug, Clone)]
@@ -29,7 +28,7 @@ impl FromRequest for AuthenticatedUser {
 pub async fn extract_user_from_token(
     token: &str,
     keys: &JwtKeys,
-    auth_service: &AuthService<InMemoryUserRepository>,
+    auth_service: &AuthService,
 ) -> Result<AuthenticatedUser, Error> {
     let claims = keys
         .verify_token(token)

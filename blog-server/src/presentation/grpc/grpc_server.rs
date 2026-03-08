@@ -2,23 +2,21 @@ use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
 use crate::application::auth_service::AuthService;
-use crate::application::blog_service::BlogService as AppBlogService;
-use crate::blog::blog_service_server::BlogService;
+use crate::application::blog_service::BlogService;
+use crate::blog::blog_service_server::BlogService as BlogServiceTrait;
 use crate::blog::*;
-use crate::data::post_repository::PostRepository;
-use crate::data::user_repository::UserRepository;
 use crate::infrastructure::jwt::JwtKeys;
 
-pub struct GrpcBlogService<U: UserRepository + 'static, P: PostRepository + 'static> {
-    auth_service: AuthService<U>,
-    blog_service: AppBlogService<P>,
+pub struct GrpcBlogService {
+    auth_service: AuthService,
+    blog_service: BlogService,
     keys: JwtKeys,
 }
 
-impl<U: UserRepository + 'static, P: PostRepository + 'static> GrpcBlogService<U, P> {
+impl GrpcBlogService {
     pub fn new(
-        auth_service: AuthService<U>,
-        blog_service: AppBlogService<P>,
+        auth_service: AuthService,
+        blog_service: BlogService,
         keys: JwtKeys,
     ) -> Self {
         Self {
@@ -42,9 +40,7 @@ impl<U: UserRepository + 'static, P: PostRepository + 'static> GrpcBlogService<U
 }
 
 #[tonic::async_trait]
-impl<U: UserRepository + Send + Sync + 'static, P: PostRepository + Send + Sync + 'static>
-    BlogService for GrpcBlogService<U, P>
-{
+impl BlogServiceTrait for GrpcBlogService {
     async fn register(
         &self,
         request: Request<RegisterRequest>,

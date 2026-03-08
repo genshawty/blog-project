@@ -19,6 +19,7 @@ pub struct LoginRequest {
 
 #[derive(Debug, Serialize)]
 pub struct AuthUserInfo {
+    pub id: Uuid,
     pub username: String,
     pub email: String,
 }

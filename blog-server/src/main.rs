@@ -20,8 +20,8 @@ use tracing::info;
 use application::auth_service::AuthService;
 use application::blog_service::BlogService;
 use blog::blog_service_server::BlogServiceServer;
-use data::post_repository::{InMemoryPostRepository, PostRepository, PostgresPostRepository};
-use data::user_repository::{InMemoryUserRepository, PostgresUserRepository, UserRepository};
+use data::post_repository::{InMemoryPostRepository, PostgresPostRepository};
+use data::user_repository::{InMemoryUserRepository, PostgresUserRepository};
 use infrastructure::config::AppConfig;
 use infrastructure::database::{create_pool, run_migrations};
 use infrastructure::jwt::JwtKeys;
@@ -54,33 +54,30 @@ async fn main() -> std::io::Result<()> {
                 .expect("failed to run migrations");
             info!("Connected to PostgreSQL, migrations applied");
 
-            let user_repo = Arc::new(PostgresUserRepository::new(pool.clone()));
-            let post_repo = Arc::new(PostgresPostRepository::new(pool));
+            let user_repo: Arc<dyn data::user_repository::UserRepository> =
+                Arc::new(PostgresUserRepository::new(pool.clone()));
+            let post_repo: Arc<dyn data::post_repository::PostRepository> =
+                Arc::new(PostgresPostRepository::new(pool));
             run_server(config, user_repo, post_repo).await
         }
         _ => {
             info!("Using in-memory storage");
-            let user_repo = Arc::new(InMemoryUserRepository::default());
-            let post_repo = Arc::new(InMemoryPostRepository::default());
+            let user_repo: Arc<dyn data::user_repository::UserRepository> =
+                Arc::new(InMemoryUserRepository::default());
+            let post_repo: Arc<dyn data::post_repository::PostRepository> =
+                Arc::new(InMemoryPostRepository::default());
             run_server(config, user_repo, post_repo).await
         }
     }
 }
 
-async fn run_server<U, P>(
+async fn run_server(
     config: AppConfig,
-    user_repo: Arc<U>,
-    post_repo: Arc<P>,
-) -> std::io::Result<()>
-where
-    U: UserRepository + Clone + 'static,
-    P: PostRepository + Clone + 'static,
-{
-    let blog_service = BlogService::new(Arc::clone(&post_repo));
-    let auth_service = AuthService::new(
-        Arc::clone(&user_repo),
-        JwtKeys::new(config.jwt_secret.clone()),
-    );
+    user_repo: Arc<dyn data::user_repository::UserRepository>,
+    post_repo: Arc<dyn data::post_repository::PostRepository>,
+) -> std::io::Result<()> {
+    let blog_service = BlogService::new(post_repo);
+    let auth_service = AuthService::new(user_repo, JwtKeys::new(config.jwt_secret.clone()));
 
     let grpc_addr: SocketAddr = format!("{}:{}", config.host, config.grpc_port)
         .parse()

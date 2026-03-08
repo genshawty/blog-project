@@ -6,15 +6,12 @@ use crate::data::post_repository::PostRepository;
 use crate::domain::{DomainError, Post};
 
 #[derive(Clone)]
-pub struct BlogService<R: PostRepository + 'static> {
-    repo: Arc<R>,
+pub struct BlogService {
+    repo: Arc<dyn PostRepository>,
 }
 
-impl<R> BlogService<R>
-where
-    R: PostRepository + 'static,
-{
-    pub fn new(repo: Arc<R>) -> Self {
+impl BlogService {
+    pub fn new(repo: Arc<dyn PostRepository>) -> Self {
         Self { repo }
     }
 
