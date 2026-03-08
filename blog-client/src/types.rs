@@ -29,6 +29,7 @@ pub struct UpdatePostRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthUserInfo {
+    pub id: String,
     pub username: String,
     pub email: String,
 }

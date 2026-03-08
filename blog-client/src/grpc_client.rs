@@ -91,6 +91,7 @@ impl BlogApi for BlogGrpcClient {
                 Ok(AuthResponse {
                     token: auth.token,
                     user: AuthUserInfo {
+                        id: String::new(),
                         username: username.to_string(),
                         email: email.to_string(),
                     },
@@ -128,6 +129,7 @@ impl BlogApi for BlogGrpcClient {
                 Ok(AuthResponse {
                     token: auth.token,
                     user: AuthUserInfo {
+                        id: String::new(),
                         username: username.to_string(),
                         email: String::new(),
                     },
