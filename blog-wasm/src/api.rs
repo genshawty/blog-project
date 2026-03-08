@@ -3,8 +3,6 @@ use serde::{Deserialize, Serialize};
 
 const BASE_URL: &str = "http://localhost:8080";
 
-// --- Request types ---
-
 #[derive(Serialize)]
 pub struct RegisterRequest {
     pub username: String,
@@ -30,10 +28,9 @@ pub struct UpdatePostRequest {
     pub content: String,
 }
 
-// --- Response types ---
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AuthUserInfo {
+    pub id: String,
     pub username: String,
     pub email: String,
 }
@@ -61,8 +58,6 @@ pub struct PostListResponse {
     pub limit: i64,
     pub offset: i64,
 }
-
-// --- API client ---
 
 #[derive(Clone)]
 pub struct ApiClient {
