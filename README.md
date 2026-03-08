@@ -2,6 +2,17 @@
 
 A blog platform with a Rust backend (Actix-web + gRPC), client SDK, and CLI.
 
+## Quick Start
+
+```bash
+make docker-fullstack
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+<img src="demo.gif" width="460px">
+
+
 ## Structure
 
 - `blog-server/` — REST + gRPC API server (auth, posts CRUD)
@@ -81,4 +92,4 @@ Start the server first, then run tests in a separate terminal:
 - [x] Add database migrations
 - [x] Connection pooling and repository trait implementations for DB
 - [ ] Extract shared DTOs into `blog-common` crate (avoid type duplication between server and client)
-- [ ] End-to-end integration tests for blog-server (HTTP + gRPC endpoints, auth flow, CRUD lifecycle)
+- [x] End-to-end integration tests for blog-server (HTTP + gRPC endpoints, auth flow, CRUD lifecycle)
