@@ -1,0 +1,39 @@
+FROM rust:1.93-bookworm
+
+RUN apt-get update && apt-get install -y protobuf-compiler && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy workspace manifests first for dependency caching
+COPY Cargo.toml Cargo.lock ./
+COPY blog-server/Cargo.toml blog-server/Cargo.toml
+COPY blog-client/Cargo.toml blog-client/Cargo.toml
+COPY blog-cli/Cargo.toml blog-cli/Cargo.toml
+COPY blog-wasm/Cargo.toml blog-wasm/Cargo.toml
+
+# Create dummy sources
+RUN mkdir -p blog-server/src blog-client/src blog-cli/src blog-wasm/src && \
+    echo "fn main() {}" > blog-server/src/main.rs && \
+    echo "fn main() {}" > blog-cli/src/main.rs && \
+    echo "" > blog-client/src/lib.rs && \
+    echo "" > blog-wasm/src/lib.rs
+
+# Copy proto files and build scripts
+COPY blog-server/proto blog-server/proto
+COPY blog-server/build.rs blog-server/build.rs
+COPY blog-client/proto blog-client/proto
+COPY blog-client/build.rs blog-client/build.rs
+
+# Pre-build dependencies (including dev-deps for tests)
+RUN cargo test --release -p blog-client --no-run 2>/dev/null || true
+
+# Copy actual source code
+COPY blog-client/src blog-client/src
+COPY blog-client/tests blog-client/tests
+
+RUN touch blog-client/src/lib.rs
+
+# Pre-compile tests
+RUN cargo test --release -p blog-client --no-run
+
+CMD ["cargo", "test", "--release", "-p", "blog-client", "--", "--ignored"]

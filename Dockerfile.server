@@ -1,0 +1,52 @@
+FROM rust:1.93-bookworm AS builder
+
+RUN apt-get update && apt-get install -y protobuf-compiler && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy workspace manifests first for dependency caching
+COPY Cargo.toml Cargo.lock ./
+COPY blog-server/Cargo.toml blog-server/Cargo.toml
+COPY blog-client/Cargo.toml blog-client/Cargo.toml
+COPY blog-cli/Cargo.toml blog-cli/Cargo.toml
+COPY blog-wasm/Cargo.toml blog-wasm/Cargo.toml
+
+# Create dummy sources so cargo can resolve the workspace
+RUN mkdir -p blog-server/src blog-client/src blog-cli/src blog-wasm/src && \
+    echo "fn main() {}" > blog-server/src/main.rs && \
+    echo "fn main() {}" > blog-cli/src/main.rs && \
+    echo "" > blog-client/src/lib.rs && \
+    echo "" > blog-wasm/src/lib.rs
+
+# Copy proto files and build scripts (needed for tonic-build)
+COPY blog-server/proto blog-server/proto
+COPY blog-server/build.rs blog-server/build.rs
+COPY blog-client/proto blog-client/proto
+COPY blog-client/build.rs blog-client/build.rs
+
+# Pre-build dependencies
+RUN cargo build --release -p blog-server 2>/dev/null || true
+
+# Copy actual source code
+COPY blog-server/src blog-server/src
+COPY blog-server/migrations blog-server/migrations
+
+# Touch main.rs to invalidate cache for the actual source
+RUN touch blog-server/src/main.rs
+
+RUN cargo build --release -p blog-server
+
+# --- Runtime ---
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y ca-certificates curl && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/target/release/blog-server /usr/local/bin/blog-server
+
+ENV HOST=0.0.0.0
+ENV PORT=8080
+ENV GRPC_PORT=50051
+
+EXPOSE 8080 50051
+
+ENTRYPOINT ["blog-server", "postgres"]

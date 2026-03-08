@@ -1,0 +1,38 @@
+FROM rust:1.93-bookworm
+
+# Install trunk and wasm target
+RUN cargo install trunk --locked && \
+    rustup target add wasm32-unknown-unknown
+
+WORKDIR /app
+
+# Copy workspace manifests for dependency caching
+COPY Cargo.toml Cargo.lock ./
+COPY blog-server/Cargo.toml blog-server/Cargo.toml
+COPY blog-client/Cargo.toml blog-client/Cargo.toml
+COPY blog-cli/Cargo.toml blog-cli/Cargo.toml
+COPY blog-wasm/Cargo.toml blog-wasm/Cargo.toml
+
+# Create dummy sources so cargo can resolve the workspace
+RUN mkdir -p blog-server/src blog-client/src blog-cli/src blog-wasm/src && \
+    echo "fn main() {}" > blog-server/src/main.rs && \
+    echo "fn main() {}" > blog-cli/src/main.rs && \
+    echo "" > blog-client/src/lib.rs && \
+    echo "fn main() {}" > blog-wasm/src/main.rs
+
+# Copy proto files and build scripts (needed for workspace resolution)
+COPY blog-server/proto blog-server/proto
+COPY blog-server/build.rs blog-server/build.rs
+COPY blog-client/proto blog-client/proto
+COPY blog-client/build.rs blog-client/build.rs
+
+# Copy actual blog-wasm source
+COPY blog-wasm/src blog-wasm/src
+COPY blog-wasm/index.html blog-wasm/index.html
+COPY blog-wasm/Trunk.toml blog-wasm/Trunk.toml
+
+WORKDIR /app/blog-wasm
+
+EXPOSE 3000
+
+CMD ["trunk", "serve", "--address", "0.0.0.0", "--port", "3000"]

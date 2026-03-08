@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: blog
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/blog
+      JWT_SECRET: test-secret-key
+      HOST: "0.0.0.0"
+      PORT: "8080"
+      GRPC_PORT: "50051"
+      CORS_ORIGINS: "*"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/posts?limit=1 || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    environment:
+      BLOG_HTTP_ADDR: http://server:8080
+      BLOG_GRPC_ADDR: http://server:50051
+    depends_on:
+      server:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      server:
+        condition: service_healthy
