@@ -1,4 +1,4 @@
-.PHONY: test-server test-server-pg client test-client test-cli
+.PHONY: test-server test-server-pg client test-client test-cli docker-server docker-test docker-fullstack docker-down
 
 # Environment variables:
 #   HOST         - server bind address (default: 127.0.0.1)
@@ -59,3 +59,16 @@ test-cli:
 	echo "Created gRPC post: $$GRPC_POST_ID" && \
 	echo "=== 10. List posts (gRPC) ===" && \
 	$(CLI) --grpc list
+
+# Docker commands
+docker-server:
+	docker compose up --build --force-recreate --remove-orphans server
+
+docker-test:
+	docker compose up --build --force-recreate --remove-orphans --abort-on-container-exit test
+
+docker-fullstack:
+	docker compose up --build --force-recreate --remove-orphans server frontend
+
+docker-down:
+	docker compose down --volumes

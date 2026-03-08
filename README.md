@@ -32,6 +32,22 @@ make test-server-pg DATABASE_URL=postgres://user:pass@localhost:5432/blog
 
 Override any variable: `make test-server PORT=3000 JWT_SECRET=my-secret`
 
+## Docker
+
+Three Dockerfiles are provided:
+
+- `Dockerfile.server` — multi-stage build that compiles `blog-server` and runs it in a minimal Debian image. Starts in `postgres` mode with automatic migrations.
+- `Dockerfile.test` — builds the workspace and runs `blog-client` integration tests (HTTP + gRPC). Exits with code 0 on success.
+- `Dockerfile.frontend` — installs `trunk` and `wasm32-unknown-unknown` target, then serves the `blog-wasm` frontend via `trunk serve`.
+
+### Docker Compose commands (via Makefile)
+
+| Command | Services | Description |
+|---------|----------|-------------|
+| `make docker-server` | postgres, server | Start the API server with PostgreSQL. Server available at `http://localhost:8080`, gRPC at `localhost:50051` |
+| `make docker-test` | postgres, server, test | Run all 38 integration tests (HTTP + gRPC) and exit with the test result code |
+| `make docker-fullstack` | postgres, server, frontend | Start the full stack: API at `http://localhost:8080`, frontend at `http://localhost:3000` |
+
 ## Testing
 
 Start the server first, then run tests in a separate terminal:
