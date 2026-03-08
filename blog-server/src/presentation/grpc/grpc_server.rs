@@ -51,18 +51,19 @@ impl BlogServiceTrait for GrpcBlogService {
             .register(req.login.clone(), req.email.clone(), req.password)
             .await
         {
-            Ok((token, _)) => Ok(Response::new(RegisterResponse {
-                status: ResistrationStatus::RegistrationOk.into(),
+            Ok((token, user)) => Ok(Response::new(RegisterResponse {
+                status: RegistrationStatus::RegistrationOk.into(),
                 auth: Some(Auth { token }),
+                user: Some(User {
+                    user_id: user.id.to_string(),
+                    login: user.username,
+                    email: user.email,
+                }),
             })),
-            Err(crate::domain::BlogError::UserAlreadyExists) => Ok(Response::new(RegisterResponse {
-                status: ResistrationStatus::RegistrationUserAlreadyExist.into(),
-                auth: None,
-            })),
-            Err(_) => Ok(Response::new(RegisterResponse {
-                status: ResistrationStatus::RegistrationInternalError.into(),
-                auth: None,
-            })),
+            Err(crate::domain::BlogError::UserAlreadyExists) => {
+                Err(Status::already_exists("user already exists"))
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -72,18 +73,19 @@ impl BlogServiceTrait for GrpcBlogService {
     ) -> Result<Response<LoginResponse>, Status> {
         let req = request.into_inner();
         match self.auth_service.login(&req.login, &req.password).await {
-            Ok((token, _)) => Ok(Response::new(LoginResponse {
+            Ok((token, user)) => Ok(Response::new(LoginResponse {
                 status: LoginStatus::LoginOk.into(),
                 auth: Some(Auth { token }),
+                user: Some(User {
+                    user_id: user.id.to_string(),
+                    login: user.username,
+                    email: user.email,
+                }),
             })),
-            Err(crate::domain::BlogError::Unauthorized) => Ok(Response::new(LoginResponse {
-                status: LoginStatus::LoginInvalidCredentials.into(),
-                auth: None,
-            })),
-            Err(_) => Ok(Response::new(LoginResponse {
-                status: LoginStatus::LoginInternalError.into(),
-                auth: None,
-            })),
+            Err(crate::domain::BlogError::Unauthorized) => {
+                Err(Status::unauthenticated("invalid credentials"))
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -92,20 +94,11 @@ impl BlogServiceTrait for GrpcBlogService {
         request: Request<CreatePostRequest>,
     ) -> Result<Response<CreatePostResponse>, Status> {
         let req = request.into_inner();
-        let user_id = match self.authenticate(req.auth.as_ref()) {
-            Ok(id) => id,
-            Err(_) => {
-                return Ok(Response::new(CreatePostResponse {
-                    status: CreatePostStatus::CreatePostUnauthorized.into(),
-                    post: None,
-                }));
-            }
-        };
+        let user_id = self.authenticate(req.auth.as_ref())?;
 
-        let content_text = req.content.map(|c| c.text).unwrap_or_default();
         match self
             .blog_service
-            .create_post(content_text.clone(), content_text, user_id)
+            .create_post(req.title, req.content, user_id)
             .await
         {
             Ok(post) => Ok(Response::new(CreatePostResponse {
@@ -113,15 +106,11 @@ impl BlogServiceTrait for GrpcBlogService {
                 post: Some(Post {
                     post_id: post.id.to_string(),
                     user_id: post.author_id.to_string(),
-                    content: Some(Content {
-                        text: post.content,
-                    }),
+                    title: post.title,
+                    content: post.content,
                 }),
             })),
-            Err(_) => Ok(Response::new(CreatePostResponse {
-                status: CreatePostStatus::CreatePostInternalError.into(),
-                post: None,
-            })),
+            Err(e) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -139,21 +128,14 @@ impl BlogServiceTrait for GrpcBlogService {
                 post: Some(Post {
                     post_id: post.id.to_string(),
                     user_id: post.author_id.to_string(),
-                    content: Some(Content {
-                        text: post.content,
-                    }),
+                    title: post.title,
+                    content: post.content,
                 }),
             })),
             Err(crate::domain::DomainError::PostNotFound(_)) => {
-                Ok(Response::new(GetPostResponse {
-                    status: GetPostStatus::GetPostNotFound.into(),
-                    post: None,
-                }))
+                Err(Status::not_found("post not found"))
             }
-            Err(_) => Ok(Response::new(GetPostResponse {
-                status: GetPostStatus::GetPostInternalError.into(),
-                post: None,
-            })),
+            Err(e) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -162,23 +144,14 @@ impl BlogServiceTrait for GrpcBlogService {
         request: Request<UpdatePostRequest>,
     ) -> Result<Response<UpdatePostResponse>, Status> {
         let req = request.into_inner();
-        let user_id = match self.authenticate(req.auth.as_ref()) {
-            Ok(id) => id,
-            Err(_) => {
-                return Ok(Response::new(UpdatePostResponse {
-                    status: UpdatePostStatus::UpdatePostUnauthorized.into(),
-                    post: None,
-                }));
-            }
-        };
+        let user_id = self.authenticate(req.auth.as_ref())?;
 
         let post_id = Uuid::parse_str(&req.post_id)
             .map_err(|_| Status::invalid_argument("invalid post_id"))?;
-        let content_text = req.content.map(|c| c.text).unwrap_or_default();
 
         match self
             .blog_service
-            .update_post(user_id, post_id, content_text.clone(), content_text)
+            .update_post(user_id, post_id, req.title, req.content)
             .await
         {
             Ok(post) => Ok(Response::new(UpdatePostResponse {
@@ -186,25 +159,17 @@ impl BlogServiceTrait for GrpcBlogService {
                 post: Some(Post {
                     post_id: post.id.to_string(),
                     user_id: post.author_id.to_string(),
-                    content: Some(Content {
-                        text: post.content,
-                    }),
+                    title: post.title,
+                    content: post.content,
                 }),
             })),
             Err(crate::domain::DomainError::PostNotFound(_)) => {
-                Ok(Response::new(UpdatePostResponse {
-                    status: UpdatePostStatus::UpdatePostNotFound.into(),
-                    post: None,
-                }))
+                Err(Status::not_found("post not found"))
             }
-            Err(crate::domain::DomainError::Forbidden) => Ok(Response::new(UpdatePostResponse {
-                status: UpdatePostStatus::UpdatePostForbidden.into(),
-                post: None,
-            })),
-            Err(_) => Ok(Response::new(UpdatePostResponse {
-                status: UpdatePostStatus::UpdatePostInternalError.into(),
-                post: None,
-            })),
+            Err(crate::domain::DomainError::Forbidden) => {
+                Err(Status::permission_denied("not the author"))
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -213,14 +178,7 @@ impl BlogServiceTrait for GrpcBlogService {
         request: Request<DeletePostRequest>,
     ) -> Result<Response<DeletePostResponse>, Status> {
         let req = request.into_inner();
-        let user_id = match self.authenticate(req.auth.as_ref()) {
-            Ok(id) => id,
-            Err(_) => {
-                return Ok(Response::new(DeletePostResponse {
-                    status: DeletePostStatus::DeletePostUnauthorized.into(),
-                }));
-            }
-        };
+        let user_id = self.authenticate(req.auth.as_ref())?;
 
         let post_id = Uuid::parse_str(&req.post_id)
             .map_err(|_| Status::invalid_argument("invalid post_id"))?;
@@ -230,16 +188,12 @@ impl BlogServiceTrait for GrpcBlogService {
                 status: DeletePostStatus::DeletePostOk.into(),
             })),
             Err(crate::domain::DomainError::PostNotFound(_)) => {
-                Ok(Response::new(DeletePostResponse {
-                    status: DeletePostStatus::DeletePostNotFound.into(),
-                }))
+                Err(Status::not_found("post not found"))
             }
-            Err(crate::domain::DomainError::Forbidden) => Ok(Response::new(DeletePostResponse {
-                status: DeletePostStatus::DeletePostForbidden.into(),
-            })),
-            Err(_) => Ok(Response::new(DeletePostResponse {
-                status: DeletePostStatus::DeletePostInternalError.into(),
-            })),
+            Err(crate::domain::DomainError::Forbidden) => {
+                Err(Status::permission_denied("not the author"))
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -259,16 +213,13 @@ impl BlogServiceTrait for GrpcBlogService {
                     .map(|p| Post {
                         post_id: p.id.to_string(),
                         user_id: p.author_id.to_string(),
-                        content: Some(Content { text: p.content }),
+                        title: p.title,
+                        content: p.content,
                     })
                     .collect(),
                 total,
             })),
-            Err(_) => Ok(Response::new(ListPostsResponse {
-                status: ListPostsStatus::ListPostsInternalError.into(),
-                posts: vec![],
-                total: 0,
-            })),
+            Err(e) => Err(Status::internal(e.to_string())),
         }
     }
 }

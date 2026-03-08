@@ -3,7 +3,7 @@ use tonic::transport::Channel;
 
 use crate::blog::blog_service_client::BlogServiceClient;
 use crate::blog::{
-    self, Auth, Content, GetPostRequest as GrpcGetPostRequest,
+    self, Auth, GetPostRequest as GrpcGetPostRequest,
     ListPostsRequest as GrpcListPostsRequest,
 };
 use crate::error::BlogClientError;
@@ -44,12 +44,11 @@ impl BlogGrpcClient {
     }
 
     fn proto_post_to_response(post: blog::Post) -> PostResponse {
-        let content = post.content.unwrap_or_default();
         PostResponse {
             id: post.post_id,
             author_id: post.user_id,
-            title: String::new(),
-            content: content.text,
+            title: post.title,
+            content: post.content,
             created_at: String::new(),
             updated_at: None,
         }
@@ -83,24 +82,25 @@ impl BlogApi for BlogGrpcClient {
             .into_inner();
 
         match resp.status() {
-            blog::ResistrationStatus::RegistrationOk => {
+            blog::RegistrationStatus::RegistrationOk => {
                 let auth = resp.auth.ok_or(BlogClientError::Internal(
                     "Missing auth in response".into(),
                 ))?;
+                let user = resp.user.unwrap_or_default();
                 self.token = Some(auth.token.clone());
                 Ok(AuthResponse {
                     token: auth.token,
                     user: AuthUserInfo {
-                        id: String::new(),
-                        username: username.to_string(),
-                        email: email.to_string(),
+                        id: user.user_id,
+                        username: user.login,
+                        email: user.email,
                     },
                 })
             }
-            blog::ResistrationStatus::RegistrationUserAlreadyExist => {
+            blog::RegistrationStatus::RegistrationUserAlreadyExist => {
                 Err(BlogClientError::UserAlreadyExists)
             }
-            blog::ResistrationStatus::RegistrationInternalError => {
+            blog::RegistrationStatus::RegistrationInternalError => {
                 Err(BlogClientError::Internal("Registration failed".into()))
             }
         }
@@ -125,13 +125,14 @@ impl BlogApi for BlogGrpcClient {
                 let auth = resp.auth.ok_or(BlogClientError::Internal(
                     "Missing auth in response".into(),
                 ))?;
+                let user = resp.user.unwrap_or_default();
                 self.token = Some(auth.token.clone());
                 Ok(AuthResponse {
                     token: auth.token,
                     user: AuthUserInfo {
-                        id: String::new(),
-                        username: username.to_string(),
-                        email: String::new(),
+                        id: user.user_id,
+                        username: user.login,
+                        email: user.email,
                     },
                 })
             }
@@ -144,16 +145,15 @@ impl BlogApi for BlogGrpcClient {
 
     async fn create_post(
         &self,
-        _title: &str,
+        title: &str,
         content: &str,
     ) -> Result<PostResponse, BlogClientError> {
         let mut client = self.client.clone();
         let resp = client
             .create_post(blog::CreatePostRequest {
                 auth: Some(self.auth()?),
-                content: Some(Content {
-                    text: content.to_string(),
-                }),
+                title: title.to_string(),
+                content: content.to_string(),
             })
             .await?
             .into_inner();
@@ -200,7 +200,7 @@ impl BlogApi for BlogGrpcClient {
     async fn update_post(
         &self,
         post_id: &str,
-        _title: &str,
+        title: &str,
         content: &str,
     ) -> Result<PostResponse, BlogClientError> {
         let mut client = self.client.clone();
@@ -208,9 +208,8 @@ impl BlogApi for BlogGrpcClient {
             .update_post(blog::UpdatePostRequest {
                 auth: Some(self.auth()?),
                 post_id: post_id.to_string(),
-                content: Some(Content {
-                    text: content.to_string(),
-                }),
+                title: title.to_string(),
+                content: content.to_string(),
             })
             .await?
             .into_inner();

@@ -1,5 +1,10 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
+#[cfg(not(target_arch = "wasm32"))]
+fn main() {
+    return;
+}
+
 #[cfg(target_arch = "wasm32")]
 fn main() {
     use eframe::wasm_bindgen::JsCast as _;

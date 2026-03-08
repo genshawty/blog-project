@@ -1,11 +1,10 @@
 use argon2::{
-    Algorithm, Argon2, Params, Version,
+    Argon2,
     password_hash::{
-        self, PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng,
+        PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng,
     },
 };
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::domain::errors::UserError;

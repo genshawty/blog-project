@@ -73,6 +73,7 @@ impl ApiClient {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_url(mut self, url: &str) -> Self {
         self.base_url = url.to_owned();
         self
