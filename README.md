@@ -10,7 +10,7 @@ make docker-fullstack
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-<img src="demo.gif" width="460px">
+<p align="center"><img src="demo.gif" width="460px"></p>
 
 
 ## Structure
