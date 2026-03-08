@@ -7,29 +7,23 @@ edition = "2024"
 tonic.workspace = true
 thiserror.workspace = true
 argon2.workspace = true
-uuid = {workspace = true, features = ["v4"]}
+uuid = { workspace = true, features = ["v4"] }
 chrono.workspace = true
-serde = {workspace = true, features=["derive"]}
-jsonwebtoken = { version = "10.3", features = ["rust_crypto"] }
-rand_core = "0.10"
-tracing-subscriber = {version="0.3.22", features = ["env-filter", "json", "chrono", "time"]}
-tracing = "0.1.44"
-sqlx = { version = "0.7", features = [
-  "runtime-tokio-rustls",
-  "postgres",
-  "uuid",
-  "chrono",
-  "migrate",
-] }
+serde = { workspace = true, features = ["derive"] }
+jsonwebtoken.workspace = true
+rand_core.workspace = true
+tracing-subscriber.workspace = true
+tracing.workspace = true
+sqlx.workspace = true
 actix-web.workspace = true
 serde_json.workspace = true
-tokio = "1.50"
-actix-cors = "0.6"
-actix-service = "2"
-futures-util = "=0.3.31"
-anyhow = "1.0.102"
-dotenv = "0.15.0"
-async-trait = "0.1.89"
+tokio.workspace = true
+actix-cors.workspace = true
+actix-service.workspace = true
+futures-util.workspace = true
+anyhow.workspace = true
+dotenv.workspace = true
+async-trait.workspace = true
 prost.workspace = true
 
 [build-dependencies]
