@@ -1,3 +1,6 @@
+## Для ревьюера
+Внутри каждого проекта в рамках workspace есть свои readme, их полезно почитать + я там давал комментарии почему я мог отклониться от требований в домашке.
+
 # Blog Platform
 
 A blog platform with a Rust backend (Actix-web + gRPC), client SDK, and CLI.
