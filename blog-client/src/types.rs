@@ -46,7 +46,6 @@ pub struct PostResponse {
     pub author_id: String,
     pub title: String,
     pub content: String,
-    pub created_at: String,
     pub updated_at: Option<String>,
 }
 

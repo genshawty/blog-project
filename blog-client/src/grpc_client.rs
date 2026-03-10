@@ -1,14 +1,13 @@
 use async_trait::async_trait;
 use tonic::transport::Channel;
 
+use crate::BlogApi;
 use crate::blog::blog_service_client::BlogServiceClient;
 use crate::blog::{
-    self, Auth, GetPostRequest as GrpcGetPostRequest,
-    ListPostsRequest as GrpcListPostsRequest,
+    self, Auth, GetPostRequest as GrpcGetPostRequest, ListPostsRequest as GrpcListPostsRequest,
 };
 use crate::error::BlogClientError;
 use crate::types::*;
-use crate::BlogApi;
 
 pub struct BlogGrpcClient {
     client: BlogServiceClient<Channel>,
@@ -34,10 +33,7 @@ impl BlogGrpcClient {
     }
 
     fn auth(&self) -> Result<Auth, BlogClientError> {
-        let token = self
-            .token
-            .as_ref()
-            .ok_or(BlogClientError::Unauthorized)?;
+        let token = self.token.as_ref().ok_or(BlogClientError::Unauthorized)?;
         Ok(Auth {
             token: token.clone(),
         })
@@ -49,7 +45,6 @@ impl BlogGrpcClient {
             author_id: post.user_id,
             title: post.title,
             content: post.content,
-            created_at: String::new(),
             updated_at: None,
         }
     }
@@ -83,9 +78,9 @@ impl BlogApi for BlogGrpcClient {
 
         match resp.status() {
             blog::RegistrationStatus::RegistrationOk => {
-                let auth = resp.auth.ok_or(BlogClientError::Internal(
-                    "Missing auth in response".into(),
-                ))?;
+                let auth = resp
+                    .auth
+                    .ok_or(BlogClientError::Internal("Missing auth in response".into()))?;
                 let user = resp.user.unwrap_or_default();
                 self.token = Some(auth.token.clone());
                 Ok(AuthResponse {
@@ -122,9 +117,9 @@ impl BlogApi for BlogGrpcClient {
 
         match resp.status() {
             blog::LoginStatus::LoginOk => {
-                let auth = resp.auth.ok_or(BlogClientError::Internal(
-                    "Missing auth in response".into(),
-                ))?;
+                let auth = resp
+                    .auth
+                    .ok_or(BlogClientError::Internal("Missing auth in response".into()))?;
                 let user = resp.user.unwrap_or_default();
                 self.token = Some(auth.token.clone());
                 Ok(AuthResponse {
