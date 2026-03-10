@@ -1,5 +1,17 @@
-## Для ревьюера
+# blog-wasm
 
-`[lib] crate-type = ["cdylib"]` - отказался тк посмотрел что я могу собирать через trunk без заморочек. Не совсем понимаю, для чего нужны излишние танцы с бубном. Остальные требования по сборке аналогично.
+WASM frontend for the blog, built with egui.
 
-`jwt` - есть требование про хранение в localStorage, но документация говорит что egui под капотом так и делает и не надо явных обращений к нему.
+## Configuring API URL
+
+By default the frontend connects to `http://localhost:8080`.
+
+To override, set the `API_BASE_URL` environment variable at build time:
+
+```bash
+API_BASE_URL=http://myserver:9090 trunk serve
+```
+
+```bash
+API_BASE_URL=https://api.example.com trunk build --release
+```

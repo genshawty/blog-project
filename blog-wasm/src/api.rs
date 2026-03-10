@@ -1,7 +1,10 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-const BASE_URL: &str = "http://localhost:8080";
+const BASE_URL: &str = match option_env!("API_BASE_URL") {
+    Some(url) => url,
+    None => "http://localhost:8080",
+};
 
 #[derive(Serialize)]
 pub struct RegisterRequest {
