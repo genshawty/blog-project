@@ -10,7 +10,7 @@ use crate::infrastructure::jwt::JwtKeys;
 pub struct AuthenticatedUser {
     pub id: Uuid,
     #[allow(dead_code)]
-    pub email: String,
+    pub username: String,
 }
 
 impl FromRequest for AuthenticatedUser {
@@ -35,13 +35,10 @@ pub async fn extract_user_from_token(
         .map_err(|_| ErrorUnauthorized("invalid token"))?;
     let user_id =
         Uuid::parse_str(&claims.user_id).map_err(|_| ErrorUnauthorized("invalid token"))?;
-    let user = auth_service
-        .get_user(user_id)
-        .await
-        .map_err(|_| ErrorUnauthorized("user not found"))?;
+    let username = claims.username.clone();
 
     Ok(AuthenticatedUser {
-        id: user.id,
-        email: user.email,
+        id: user_id,
+        username: username,
     })
 }
