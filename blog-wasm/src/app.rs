@@ -324,7 +324,7 @@ pub enum AuthTab {
     Register,
 }
 
-fn spawn_future(_future: impl std::future::Future<Output = ()> + 'static) {
+fn spawn_future(future: impl std::future::Future<Output = ()> + 'static) {
     #[cfg(target_arch = "wasm32")]
     wasm_bindgen_futures::spawn_local(future);
 
